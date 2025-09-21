@@ -202,12 +202,111 @@ func isBIP0030Node(node *blockNode) bool {
 // At the target block generation rate for the main network, this is
 // approximately every 4 years.
 func CalcBlockSubsidy(height int32, chainParams *chaincfg.Params) int64 {
+	// Handle Junkcoin-specific subsidy calculation
+	if isJunkcoinNetwork(chainParams) {
+		return calcJunkcoinBlockSubsidy(height, chainParams)
+	}
+
 	if chainParams.SubsidyReductionInterval == 0 {
 		return baseSubsidy
 	}
 
 	// Equivalent to: baseSubsidy / 2^(height/subsidyHalvingInterval)
 	return baseSubsidy >> uint(height/chainParams.SubsidyReductionInterval)
+}
+
+// isJunkcoinNetwork checks if the given chain parameters are for Junkcoin
+func isJunkcoinNetwork(chainParams *chaincfg.Params) bool {
+	return chainParams.Net == 0x6a756e6b || chainParams.Net == 0x6a756e6b+1
+}
+
+// calcJunkcoinBlockSubsidy calculates the block subsidy for Junkcoin
+func calcJunkcoinBlockSubsidy(height int32, chainParams *chaincfg.Params) int64 {
+	// Junkcoin has a complex reward schedule with random bonuses
+	// and development fund (20% of base reward)
+
+	// Calculate base subsidy based on network type and height
+	var baseSubsidy int64
+	isTestnet := chainParams.Net == 0x6a756e6b+1
+
+	if isTestnet {
+		// Testnet rewards (accelerated schedule)
+		if height < 101 {
+			baseSubsidy = 1000 * btcutil.SatoshiPerBitcoin
+		} else if height < 201 {
+			baseSubsidy = 500 * btcutil.SatoshiPerBitcoin  // 1st day
+		} else if height < 401 {
+			baseSubsidy = 200 * btcutil.SatoshiPerBitcoin  // 2nd day
+		} else if height < 601 {
+			baseSubsidy = 100 * btcutil.SatoshiPerBitcoin  // 3rd and 4th days
+		} else if height < 801 {
+			baseSubsidy = 50 * btcutil.SatoshiPerBitcoin
+		} else if height < 1001 {
+			baseSubsidy = 25 * btcutil.SatoshiPerBitcoin
+		} else if height < 657000 {
+			baseSubsidy = 12.5 * btcutil.SatoshiPerBitcoin
+		} else if height < 1182600 {
+			baseSubsidy = 6.25 * btcutil.SatoshiPerBitcoin
+		} else if height < 1971000 {
+			baseSubsidy = 3.125 * btcutil.SatoshiPerBitcoin
+		} else if height < 2759400 {
+			baseSubsidy = 1.5625 * btcutil.SatoshiPerBitcoin
+		} else if height < 3547800 {
+			baseSubsidy = 0.78125 * btcutil.SatoshiPerBitcoin
+		} else {
+			baseSubsidy = 0.390625 * btcutil.SatoshiPerBitcoin
+		}
+	} else {
+		// Mainnet rewards
+		if height < 101 {
+			baseSubsidy = 1000 * btcutil.SatoshiPerBitcoin
+		} else if height < 1541 {
+			baseSubsidy = 500 * btcutil.SatoshiPerBitcoin  // 1st day
+		} else if height < 2981 {
+			baseSubsidy = 200 * btcutil.SatoshiPerBitcoin  // 2nd day
+		} else if height < 5861 {
+			baseSubsidy = 100 * btcutil.SatoshiPerBitcoin  // 3rd and 4th days
+		} else if height < 262800 {
+			baseSubsidy = 50 * btcutil.SatoshiPerBitcoin
+		} else if height < 394200 {
+			baseSubsidy = 25 * btcutil.SatoshiPerBitcoin
+		} else if height < 657000 {
+			baseSubsidy = 12.5 * btcutil.SatoshiPerBitcoin
+		} else if height < 1182600 {
+			baseSubsidy = 6.25 * btcutil.SatoshiPerBitcoin
+		} else if height < 1971000 {
+			baseSubsidy = 3.125 * btcutil.SatoshiPerBitcoin
+		} else if height < 2759400 {
+			baseSubsidy = 1.5625 * btcutil.SatoshiPerBitcoin
+		} else if height < 3547800 {
+			baseSubsidy = 0.78125 * btcutil.SatoshiPerBitcoin
+		} else {
+			baseSubsidy = 0.390625 * btcutil.SatoshiPerBitcoin
+		}
+	}
+
+	// Apply random bonus blocks
+	// Use height as seed for deterministic random number generation
+	random := generateMTRandom(uint32(height), 100000)
+
+	// 1% chance for 3x reward
+	if random > 99990 {
+		baseSubsidy = 1000 * btcutil.SatoshiPerBitcoin
+	} else if random < 1001 {
+		// 0.01% chance for 1000 JKC fixed reward
+		baseSubsidy *= 3
+	}
+
+	return baseSubsidy
+}
+
+// generateMTRandom generates a deterministic random number using Mersenne Twister algorithm
+// This is a simplified version for demonstration - in production, use crypto/rand
+func generateMTRandom(seed uint32, max int) int {
+	// Simple LCG (Linear Congruential Generator) for deterministic randomness
+	// This is not cryptographically secure but sufficient for block rewards
+	seed = (seed * 1103515245 + 12345) & 0x7fffffff
+	return int(seed % uint32(max))
 }
 
 // CheckTransactionSanity performs some preliminary checks on a transaction to

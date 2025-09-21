@@ -194,17 +194,25 @@ const (
 
 	// SimNet represents the simulation test network.
 	SimNet BitcoinNet = 0x12141c16
+
+	// JunkcoinMainNet represents the Junkcoin main network.
+	JunkcoinMainNet BitcoinNet = 0x6a756e6b // "junk" in ASCII
+
+	// JunkcoinTestNet represents the Junkcoin test network.
+	JunkcoinTestNet BitcoinNet = 0x6a756e6b + 1 // "junk" + 1 in ASCII
 )
 
 // bnStrings is a map of bitcoin networks back to their constant names for
 // pretty printing.
 var bnStrings = map[BitcoinNet]string{
-	MainNet:  "MainNet",
-	TestNet:  "TestNet",
-	TestNet3: "TestNet3",
-	TestNet4: "TestNet4",
-	SigNet:   "SigNet",
-	SimNet:   "SimNet",
+	MainNet:        "MainNet",
+	TestNet:        "TestNet",
+	TestNet3:       "TestNet3",
+	TestNet4:       "TestNet4",
+	SigNet:         "SigNet",
+	SimNet:         "SimNet",
+	JunkcoinMainNet: "JunkcoinMainNet",
+	JunkcoinTestNet: "JunkcoinTestNet",
 }
 
 // String returns the BitcoinNet in human-readable form.
